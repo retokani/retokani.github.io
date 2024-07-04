@@ -139,6 +139,41 @@
 <div class="row">
 	<div class="col-md-8">
 		<h3 class="title">
+			<a href="/2024/07/04/trapslab/" ></a>
+		</h3>
+		</div>
+	<div class="col-md-4">
+		<div class="date">post @ 2024-07-04  </div>
+		</div>
+	</div>
+	
+
+
+			<div class="entry">
+  <div class="row">
+	
+	
+		<h1 id="【实验4】traps-lab"><a href="#【实验4】traps-lab" class="headerlink" title="【实验4】traps-lab"></a>【实验4】traps-lab</h1><h2 id="问题："><a href="#问题：" class="headerlink" title="问题："></a>问题：</h2><h3 id="1-哪些寄存器包含函数的参数？例如，哪个寄存器在-main-对-printf-的调用中保存-13？"><a href="#1-哪些寄存器包含函数的参数？例如，哪个寄存器在-main-对-printf-的调用中保存-13？" class="headerlink" title="1.哪些寄存器包含函数的参数？例如，哪个寄存器在 main 对 printf 的调用中保存 13？"></a>1.哪些寄存器包含函数的参数？例如，哪个寄存器在 main 对 printf 的调用中保存 13？</h3><p>a0-a7寄存器包含函数的参数。a2寄存器在main对printf的调用中保存13</p>
+<img src="file:///C:/Users/yujiz/AppData/Local/Temp/msohtmlclip1/01/clip_image002.png" alt="img">
+
+<p><img src="file:///C:/Users/yujiz/AppData/Local/Temp/msohtmlclip1/01/clip_image004.png" alt="img"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">reg    | name  | saver  | description</span><br><span class="line">-------+-------+--------+------------</span><br><span class="line">x0     | zero  |        | hardwired zero</span><br><span class="line">x1     | ra    | caller | return address</span><br><span class="line">x2     | sp    | callee | stack pointer</span><br><span class="line">x3     | gp    |        | global pointer</span><br><span class="line">x4     | tp    |        | thread pointer</span><br><span class="line">x5-7   | t0-2  | caller | temporary registers</span><br><span class="line">x8     | s0/fp | callee | saved register / frame pointer</span><br><span class="line">x9     | s1    | callee | saved register</span><br><span class="line">x10-11 | a0-1  | caller | function arguments / return values</span><br><span class="line">x12-17 | a2-7  | caller | function arguments</span><br><span class="line">x18-27 | s2-11 | callee | saved registers</span><br><span class="line">x28-31 | t3-6  | caller | temporary registers</span><br><span class="line">pc     |       |        | program counter</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">How are arguments passed?</span><br><span class="line">    a0, a1, ..., a7, rest on stack</span><br><span class="line">How are values returned?</span><br><span class="line">    a0, a1</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-Where-is-the-call-to-function-f-in-the-assembly-code-for-main-Where-is-the-call-to-g-Hint-the-compiler-may-inline-functions"><a href="#2-Where-is-the-call-to-function-f-in-the-assembly-code-for-main-Where-is-the-call-to-g-Hint-the-compiler-may-inline-functions" class="headerlink" title="2.Where is the call to function f in the assembly code for main? Where is the call to g? (Hint: the compiler may inline functions.)"></a>2.Where is the call to function f in the assembly code for main? Where is the call to g? (Hint: the compiler may inline functions.)</h3><p>​			main 的汇编代码没有调用 f 和 g 函数。编译器可以内联函数。</p>
+	
+	</div>
+  <a type="button" href="/2024/07/04/trapslab/#more" class="btn btn-default more">Read More</a>
+</div>
+
+		
+			
+	
+	<!-- display as entry -->
+<div class="row">
+	<div class="col-md-8">
+		<h3 class="title">
 			<a href="/2024/07/02/the-first/" >here&#39;s a post.</a>
 		</h3>
 		</div>
@@ -220,6 +255,10 @@
 <div class="widget">
   <h4>Recent Posts</h4>
   <ul class="entry list-unstyled">
+    
+      <li>
+        <a href="/2024/07/04/trapslab/" ><i class="fa fa-file-o"></i></a>
+      </li>
     
       <li>
         <a href="/2024/07/02/the-first/" ><i class="fa fa-file-o"></i>here&#39;s a post.</a>
