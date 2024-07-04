@@ -153,8 +153,7 @@
 <li>如果发生 COW 页面错误且没有可用内存，则应杀死进程。</li>
 </ol>
 <h2 id="实现："><a href="#实现：" class="headerlink" title="实现："></a>实现：</h2><p>在物理内存中，XV6中的Shell通常会有4个page，当调用fork时，基本上就是创建了4个新的page，并将父进程page的内容拷贝到4个新的子进程的page中。</p>
-<img src="https://gitee.com/retokani/pictures/raw/master/img/202407041801457.png" alt="image-20240517141853147-C8M-9_Nu" style="zoom:80%;" />
-
+<p><img src="https://gitee.com/retokani/pictures/raw/master/img/202407041817592.png" alt="image-20240517141853147-C8M-9_Nu"></p>
 <h3 id="在riscv-h中"><a href="#在riscv-h中" class="headerlink" title="在riscv.h中"></a>在riscv.h中</h3><p>RSW可以随意使用，加入标志位：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\<span class="meta">#<span class="keyword">define</span> PTE_COW (1L &lt;&lt; 8)</span></span><br></pre></td></tr></table></figure>
 
@@ -169,7 +168,7 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">int</span> page_refcnt[PHYSTOP/PGSIZE];</span><br></pre></td></tr></table></figure>
 
 <h4 id="在usertrap-中："><a href="#在usertrap-中：" class="headerlink" title="在usertrap()中："></a>在usertrap()中：</h4><p>判断scause是8的话去syscall，然后判断是否有中断发生：<code>else if((which_dev = devintr()) != 0)</code></p>
-<p><img src="https://gitee.com/retokani/pictures/raw/master/img/202407041801051.png" alt="image-20240704160315495"></p>
+<p><img src="https://gitee.com/retokani/pictures/raw/master/img/202407041817747.png" alt="202407041801051"></p>
 <p>存储&#x2F;原子操作页故障（Store&#x2F;AMO page fault）：当用户进程尝试将数据写入一个只读页面时，会发生这种异常。在这种情况下，代码会检查页表项（pte）是否包含Copy-on-Write（COW）标志。如果包含，那么它会为该页面分配一个新的物理页面，将旧页面复制到新页面，并将页表项更改为可写状态。如果不包含COW标志，那么它会打印一条错误消息并终止进程。</p>
 <ol>
 <li>获取当前异常的虚拟地址（write_va）。</li>
