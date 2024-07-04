@@ -139,7 +139,7 @@
 <div class="row">
 	<div class="col-md-8">
 		<h3 class="title">
-			<a href="/2024/07/04/trapslab/" ></a>
+			<a href="/2024/07/04/trapslab/" >【实验4】traps-lab</a>
 		</h3>
 		</div>
 	<div class="col-md-4">
@@ -165,6 +165,54 @@
 	
 	</div>
   <a type="button" href="/2024/07/04/trapslab/#more" class="btn btn-default more">Read More</a>
+</div>
+
+		
+			
+	
+	<!-- display as entry -->
+<div class="row">
+	<div class="col-md-8">
+		<h3 class="title">
+			<a href="/2024/07/04/实验5/" >【实验5】Copy-on-Write</a>
+		</h3>
+		</div>
+	<div class="col-md-4">
+		<div class="date">post @ 2024-07-04  </div>
+		</div>
+	</div>
+	
+
+
+			<div class="entry">
+  <div class="row">
+	
+	
+		<h1 id="Lab5-Copy-on-Write-Fork-for-xv6"><a href="#Lab5-Copy-on-Write-Fork-for-xv6" class="headerlink" title="Lab5: Copy-on-Write Fork for xv6"></a>Lab5: Copy-on-Write Fork for xv6</h1><h2 id="题目翻译："><a href="#题目翻译：" class="headerlink" title="题目翻译："></a>题目翻译：</h2><p>问题：xv6 中的 fork() 系统调用会将父进程的所有用户空间内存复制到子进程中。如果父进程很大，拷贝可能需要很长时间。更糟糕的是，这些工作通常会被浪费掉：fork() 之后，子进程通常会执行 exec()，丢弃复制的内存，通常不会使用其中的大部分。另一方面，如果父进程和子进程都使用了复制的页面，并且其中一个或两个都写入了该页面，那么复制就是真正需要的。</p>
+<p>需要实现的：实现写入时拷贝（COW）fork() 的目的是推迟分配和拷贝物理内存页，直到实际需要时才拷贝（如果需要的话）。COW fork() creates just a pagetable for the child, with PTEs for user memory pointing to the parent’s physical pages. COW fork() 只为子进程创建一个分页表，其中的用户内存 PTE 指向父进程的物理页面。COW fork() 会将父进程和子进程中的所有用户 PTE 标记为只读。当任何一个进程试图写入这些 COW 页面时，CPU 都会强制产生一个页面故障。内核页面故障处理程序会检测到这种情况，为故障进程分配一页物理内存，将原始页面复制到新页面，并修改故障进程中的相关 PTE 以引用新页面，这次的 PTE 标记为可写。当页面故障处理程序返回时，用户进程将能写入其页面副本。</p>
+<p>​		COW fork() 在释放实现用户内存的物理页时比较麻烦。一个给定的物理页可能会被多个进程的页表引用，只有当最后一个引用消失时，才能释放该页。在 xv6 这样的简单内核中，这种管理相当简单明了，但在生产内核中却很难做到这一点。</p>
+<p>这里有一个合理的攻击计划：</p>
+<ol>
+<li><p>修改 uvmcopy() 以将父代的物理页面映射到子代，而不是分配新的页面。对于设置了 PTE_W 的页面，清除子代和父代 PTE 中的 PTE_W。</p>
+</li>
+<li><p>修改 usertrap() 以识别页面故障。当原本可写的 COW 页面出现写页面故障时，使用 kalloc() 分配新页面，将旧页面复制到新页面，并将新页面安装到设置了 PTE_W 的 PTE 中。原本只读的页面（未映射 PTE_W，如文本段中的页面）应保持只读并在父进程和子进程之间共享；试图写入此类页面的进程应被杀死。</p>
+</li>
+<li><p>确保每个物理页面在最后一次 PTE 引用消失时被释放，而不是在此之前。一个很好的方法是为每个物理页保留一个 “引用计数”，即引用该页的用户页表的数量。在 kalloc() 分配页面时，将页面的引用计数设为 1。只有当页面的引用计数为零时，kfree() 才会将该页面放回空闲列表。将这些计数保存在一个固定大小的整数数组中也是可以的。你必须为如何索引数组和如何选择数组大小制定一个方案。例如，你可以用页面的物理地址除以 4096 作为数组的索引，并给数组一个元素数，该元素数等于 kalloc.c 中 kinit() 放在空闲列表上的任何页面的最高物理地址。</p>
+</li>
+<li><p>修改 copyout() 以在遇到 COW 页面时使用与页面故障相同的方案。</p>
+</li>
+</ol>
+<p>一些提示：</p>
+<ol>
+<li>记录每个 PTE 是否是 COW 映射的方法可能很有用。为此，可以使用 RISC-V PTE 中的 RSW（为软件保留）位。</li>
+<li>usertests -q 可以探索 cowtest 无法测试的情况，因此不要忘记检查两者是否都通过了所有测试。</li>
+<li>在 kernel&#x2F;riscv.h 的末尾有一些有用的宏和页表标志定义。</li>
+<li>如果发生 COW 页面错误且没有可用内存，则应杀死进程。</li>
+</ol>
+<h2 id="实现："><a href="#实现：" class="headerlink" title="实现："></a>实现：</h2>
+	
+	</div>
+  <a type="button" href="/2024/07/04/实验5/#more" class="btn btn-default more">Read More</a>
 </div>
 
 		
@@ -234,6 +282,8 @@
 		
 			<li><a href="/categories/Post/">Post<span>1</span></a></li>
 		
+			<li><a href="/categories/作业/">作业<span>2</span></a></li>
+		
 		</ul>
 	</div>
 
@@ -244,6 +294,8 @@
 		<ul class="tag_box inline list-unstyled">		
 		
 			<li><a href="/tags/reto/">reto<span>1</span></a></li>
+		
+			<li><a href="/tags/操作系统/">操作系统<span>2</span></a></li>
 		
 		 
 		</ul>
@@ -257,7 +309,11 @@
   <ul class="entry list-unstyled">
     
       <li>
-        <a href="/2024/07/04/trapslab/" ><i class="fa fa-file-o"></i></a>
+        <a href="/2024/07/04/trapslab/" ><i class="fa fa-file-o"></i>【实验4】traps-lab</a>
+      </li>
+    
+      <li>
+        <a href="/2024/07/04/实验5/" ><i class="fa fa-file-o"></i>【实验5】Copy-on-Write</a>
       </li>
     
       <li>

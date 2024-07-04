@@ -1,0 +1,377 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="cache-control" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  
+  <title>【实验5】Copy-on-Write | TONG&#39; BLOG</title>
+  <meta name="author" content="tong">
+  
+  <meta name="description" content="there is nothing for now">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="【实验5】Copy-on-Write"/>
+  <meta property="og:site_name" content="TONG&#39; BLOG"/>
+
+  
+    <meta property="og:image" content=""/>
+  
+
+  
+    <link rel="alternative" href="/atom.xml" title="TONG&#39; BLOG" type="application/atom+xml">
+  
+  
+    <link href="/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/responsive.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/prism.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-70812759-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-70812759-1');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/">TONG&#39; BLOG</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/archives" title="All the articles.">
+			  <i class=""></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/categories" title="All the categories.">
+			  <i class=""></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/tags" title="All the tags.">
+			  <i class=""></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/about" title="About me.">
+			  <i class=""></i>About
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/atom.xml" title="Subscribe me.">
+			  <i class=""></i>RSS
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">
+			<h1> 【实验5】Copy-on-Write</h1>
+		</div>
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div id="top_meta"></div>
+	<div class="col-md-9">
+	
+
+	<!-- content -->
+	<div class="mypage">		
+	  		
+
+	  <h1 id="Lab5-Copy-on-Write-Fork-for-xv6"><a href="#Lab5-Copy-on-Write-Fork-for-xv6" class="headerlink" title="Lab5: Copy-on-Write Fork for xv6"></a>Lab5: Copy-on-Write Fork for xv6</h1><h2 id="题目翻译："><a href="#题目翻译：" class="headerlink" title="题目翻译："></a>题目翻译：</h2><p>问题：xv6 中的 fork() 系统调用会将父进程的所有用户空间内存复制到子进程中。如果父进程很大，拷贝可能需要很长时间。更糟糕的是，这些工作通常会被浪费掉：fork() 之后，子进程通常会执行 exec()，丢弃复制的内存，通常不会使用其中的大部分。另一方面，如果父进程和子进程都使用了复制的页面，并且其中一个或两个都写入了该页面，那么复制就是真正需要的。</p>
+<p>需要实现的：实现写入时拷贝（COW）fork() 的目的是推迟分配和拷贝物理内存页，直到实际需要时才拷贝（如果需要的话）。COW fork() creates just a pagetable for the child, with PTEs for user memory pointing to the parent’s physical pages. COW fork() 只为子进程创建一个分页表，其中的用户内存 PTE 指向父进程的物理页面。COW fork() 会将父进程和子进程中的所有用户 PTE 标记为只读。当任何一个进程试图写入这些 COW 页面时，CPU 都会强制产生一个页面故障。内核页面故障处理程序会检测到这种情况，为故障进程分配一页物理内存，将原始页面复制到新页面，并修改故障进程中的相关 PTE 以引用新页面，这次的 PTE 标记为可写。当页面故障处理程序返回时，用户进程将能写入其页面副本。</p>
+<p>​		COW fork() 在释放实现用户内存的物理页时比较麻烦。一个给定的物理页可能会被多个进程的页表引用，只有当最后一个引用消失时，才能释放该页。在 xv6 这样的简单内核中，这种管理相当简单明了，但在生产内核中却很难做到这一点。</p>
+<p>这里有一个合理的攻击计划：</p>
+<ol>
+<li><p>修改 uvmcopy() 以将父代的物理页面映射到子代，而不是分配新的页面。对于设置了 PTE_W 的页面，清除子代和父代 PTE 中的 PTE_W。</p>
+</li>
+<li><p>修改 usertrap() 以识别页面故障。当原本可写的 COW 页面出现写页面故障时，使用 kalloc() 分配新页面，将旧页面复制到新页面，并将新页面安装到设置了 PTE_W 的 PTE 中。原本只读的页面（未映射 PTE_W，如文本段中的页面）应保持只读并在父进程和子进程之间共享；试图写入此类页面的进程应被杀死。</p>
+</li>
+<li><p>确保每个物理页面在最后一次 PTE 引用消失时被释放，而不是在此之前。一个很好的方法是为每个物理页保留一个 “引用计数”，即引用该页的用户页表的数量。在 kalloc() 分配页面时，将页面的引用计数设为 1。只有当页面的引用计数为零时，kfree() 才会将该页面放回空闲列表。将这些计数保存在一个固定大小的整数数组中也是可以的。你必须为如何索引数组和如何选择数组大小制定一个方案。例如，你可以用页面的物理地址除以 4096 作为数组的索引，并给数组一个元素数，该元素数等于 kalloc.c 中 kinit() 放在空闲列表上的任何页面的最高物理地址。</p>
+</li>
+<li><p>修改 copyout() 以在遇到 COW 页面时使用与页面故障相同的方案。</p>
+</li>
+</ol>
+<p>一些提示：</p>
+<ol>
+<li>记录每个 PTE 是否是 COW 映射的方法可能很有用。为此，可以使用 RISC-V PTE 中的 RSW（为软件保留）位。</li>
+<li>usertests -q 可以探索 cowtest 无法测试的情况，因此不要忘记检查两者是否都通过了所有测试。</li>
+<li>在 kernel&#x2F;riscv.h 的末尾有一些有用的宏和页表标志定义。</li>
+<li>如果发生 COW 页面错误且没有可用内存，则应杀死进程。</li>
+</ol>
+<h2 id="实现："><a href="#实现：" class="headerlink" title="实现："></a>实现：</h2><p>在物理内存中，XV6中的Shell通常会有4个page，当调用fork时，基本上就是创建了4个新的page，并将父进程page的内容拷贝到4个新的子进程的page中。</p>
+<img src="D:\download\image-20240517141853147-C8M-9_Nu.png" alt="image-20240517141853147-C8M-9_Nu" style="zoom:80%;" />
+
+<h3 id="在riscv-h中"><a href="#在riscv-h中" class="headerlink" title="在riscv.h中"></a>在riscv.h中</h3><p>RSW可以随意使用，加入标志位：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\<span class="meta">#<span class="keyword">define</span> PTE_COW (1L &lt;&lt; 8)</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="在kalloc-c中："><a href="#在kalloc-c中：" class="headerlink" title="在kalloc.c中："></a>在kalloc.c中：</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">volatile</span> <span class="type">int</span> page_refcnt[PHYSTOP/PGSIZE]; <span class="comment">// COW reference count. </span></span><br></pre></td></tr></table></figure>
+
+<p>这里的<code>volatile</code>关键字用于确保对<code>page_refcnt</code>数组的每次访问都是独立的，不会被缓存。这样可以确保在并发环境下，对<code>page_refcnt</code>数组的访问是正确的。<code>volatile</code>关键字的作用是：当一个变量被声明为<code>volatile</code>时，编译器会确保对它的每次访问都会直接从内存中读取，而不是从缓存中读取。这可以确保对<code>page_refcnt</code>数组的每次访问都是独立的，不会被缓存。</p>
+<h4 id="在kfree-函数中加入（用于计数减一）："><a href="#在kfree-函数中加入（用于计数减一）：" class="headerlink" title="在kfree()函数中加入（用于计数减一）："></a>在kfree()函数中加入（用于计数减一）：</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">kfree</span><span class="params">(<span class="type">void</span> *pa)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">if</span>(page_refcnt[(uint64)pa/PGSIZE]&gt;<span class="number">0</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    page_refcnt[(uint64)pa/PGSIZE] -= <span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span>(page_refcnt[(uint64)pa/PGSIZE]&gt;<span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line">  ···</span><br></pre></td></tr></table></figure>
+
+<h4 id="在kalloc-函数中："><a href="#在kalloc-函数中：" class="headerlink" title="在kalloc()函数中："></a>在kalloc()函数中：</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">page_refcnt[(uint64)r/PGSIZE] = <span class="number">1</span>; </span><br></pre></td></tr></table></figure>
+
+<h3 id="在trap-c中："><a href="#在trap-c中：" class="headerlink" title="在trap.c中："></a>在trap.c中：</h3><p>加入</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">int</span> page_refcnt[PHYSTOP/PGSIZE];</span><br></pre></td></tr></table></figure>
+
+<h4 id="在usertrap-中："><a href="#在usertrap-中：" class="headerlink" title="在usertrap()中："></a>在usertrap()中：</h4><p>判断scause是8的话去syscall，然后判断是否有中断发生：<code>else if((which_dev = devintr()) != 0)</code></p>
+<p><img src="C:\Users\yujiz\AppData\Roaming\Typora\typora-user-images\image-20240704160315495.png" alt="image-20240704160315495"></p>
+<p>存储&#x2F;原子操作页故障（Store&#x2F;AMO page fault）：当用户进程尝试将数据写入一个只读页面时，会发生这种异常。在这种情况下，代码会检查页表项（pte）是否包含Copy-on-Write（COW）标志。如果包含，那么它会为该页面分配一个新的物理页面，将旧页面复制到新页面，并将页表项更改为可写状态。如果不包含COW标志，那么它会打印一条错误消息并终止进程。</p>
+<ol>
+<li>获取当前异常的虚拟地址（write_va）。</li>
+<li>检查虚拟地址是否在最大虚拟地址（MAXVA）范围内。如果不在这个范围内，那么就跳转到unexpected_scause标签，表示这是一个意外的异常。</li>
+<li>获取当前进程的页表（pagetable）。</li>
+<li>使用walk函数在页表中查找虚拟地址对应的页表项（pte）。</li>
+<li>检查页表项是否包含COW标志。如果包含COW标志，那么说明这个页面是一个COW页面。</li>
+<li>为新的页面分配内存（mem）。</li>
+<li>将原始页面的内容复制到新的内存中（memmove）。</li>
+<li>将新的页面映射到页表中，并取消原始页面的映射（uvmunmap和kfree）。</li>
+<li>如果映射新页面失败，那么释放分配的内存，并跳转到not_enough_physical_memory_error标签，表示没有足够的物理内存。</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span>(r_scause()==<span class="number">15</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      uint64 write_va = r_stval();<span class="comment">//获取当前异常的虚拟地址（write_va）</span></span><br><span class="line">      <span class="keyword">if</span>(write_va&gt;=MAXVA) <span class="keyword">goto</span> unexpected_scause; <span class="comment">//检查虚拟地址是否在最大虚拟地址（MAXVA）范围内。如果不在这个范围内，那么就跳转到unexpected_scause标签，表示这是一个意外的异常</span></span><br><span class="line">      <span class="type">pagetable_t</span> pagetable = myproc()-&gt;pagetable;<span class="comment">//获取当前进程的页表（pagetable）</span></span><br><span class="line">      <span class="type">pte_t</span> *pte = walk(pagetable, write_va, <span class="number">0</span>);<span class="comment">//使用walk函数在页表中查找虚拟地址对应的页表项（pte）</span></span><br><span class="line">      <span class="keyword">if</span>(*pte &amp; PTE_COW) <span class="comment">//这个页面是一个COW页面</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">//为新的页面分配内存（mem）</span></span><br><span class="line">        <span class="type">char</span> *mem;</span><br><span class="line">        <span class="keyword">if</span>((mem = kalloc()) == <span class="number">0</span>) &#123;</span><br><span class="line">          not_enough_physical_memory_error:</span><br><span class="line">          <span class="built_in">printf</span>(<span class="string">&quot;Not enough physical memory when copy-on-write! pid=%d\n&quot;</span>, p-&gt;pid);</span><br><span class="line">          setkilled(p);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//将原始页面的内容复制到新的内存中（memmove）</span></span><br><span class="line">        memmove(mem, (<span class="type">char</span>*)PTE2PA(*pte), PGSIZE);</span><br><span class="line">		<span class="comment">//将新的页面映射到页表中，并取消原始页面的映射（uvmunmap和kfree）</span></span><br><span class="line">        uint flags = PTE_FLAGS(*pte);</span><br><span class="line">        flags = (flags &amp; (~PTE_COW)) | PTE_W; <span class="comment">//标为可写，且不是COW页面</span></span><br><span class="line">        uvmunmap(pagetable, PGROUNDDOWN(write_va), <span class="number">1</span>, <span class="number">1</span>);</span><br><span class="line">        <span class="keyword">if</span>(mappages(pagetable, PGROUNDDOWN(write_va), PGSIZE, (uint64)mem, flags) != <span class="number">0</span>)&#123;<span class="comment">//检查是否能够成功将内存映射到指定的虚拟地址。映射成功后，将内存块的指针mem分配给指定的虚拟地址。如果映射失败，则释放内存块。</span></span><br><span class="line">          kfree(mem);</span><br><span class="line">          <span class="built_in">printf</span>(<span class="string">&quot;This should never happen! The page SHOULD exist. mappages() won&#x27;t fail!!! \n&quot;</span>);</span><br><span class="line">          <span class="keyword">goto</span> not_enough_physical_memory_error;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="comment">//不是COW页面</span></span><br><span class="line">      &#123;</span><br><span class="line">        <span class="keyword">goto</span> unexpected_scause;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">      unexpected_scause:</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;usertrap(): unexpected scause %p pid=%d\n&quot;</span>, r_scause(), p-&gt;pid);</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;sepc=%p stval=%p\n&quot;</span>, r_sepc(), r_stval());</span><br><span class="line">      setkilled(p);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="在vm-c中："><a href="#在vm-c中：" class="headerlink" title="在vm.c中："></a>在vm.c中：</h3><p>一样先加入：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">int</span> page_refcnt[PHYSTOP/PGSIZE];</span><br></pre></td></tr></table></figure>
+
+<h4 id="修改uvmcopy-函数："><a href="#修改uvmcopy-函数：" class="headerlink" title="修改uvmcopy()函数："></a>修改uvmcopy()函数：</h4><p>原先：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; sz; i += PGSIZE)&#123;</span><br><span class="line">  <span class="keyword">if</span>((pte = walk(old, i, <span class="number">0</span>)) == <span class="number">0</span>)</span><br><span class="line">    panic(<span class="string">&quot;uvmcopy: pte should exist&quot;</span>);</span><br><span class="line">  <span class="keyword">if</span>((*pte &amp; PTE_V) == <span class="number">0</span>)</span><br><span class="line">    panic(<span class="string">&quot;uvmcopy: page not present&quot;</span>);</span><br><span class="line">  pa = PTE2PA(*pte);</span><br><span class="line">    </span><br><span class="line">  flags = PTE_FLAGS(*pte);</span><br><span class="line">  <span class="keyword">if</span>((mem = kalloc()) == <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">goto</span> err;</span><br><span class="line">  memmove(mem, (<span class="type">char</span>*)pa, PGSIZE);<span class="comment">//复制页面</span></span><br><span class="line">  <span class="keyword">if</span>(mappages(new, i, PGSIZE, (uint64)mem, flags) != <span class="number">0</span>)&#123;</span><br><span class="line">    kfree(mem);</span><br><span class="line">    <span class="keyword">goto</span> err;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修改后：</p>
+<p>既然我们使用了Copy-on-Write（COW）机制，就没有必要复制页面。我们将原始页映射到子进程的页表中，然后在父进程和子进程的页表项中，将PTE_W标志（写权限标志）设置为0，将自定义的PTE_COW标志（Copy-on-Write标志）设置为1。</p>
+<p>这样，当子进程试图写入原始页时，系统会自动分配一个新的页，并将原始页的内容复制到新页中。同时，由于父进程和子进程的页表项中的PTE_W标志都为0，所以子进程无法修改原始页。这样，我们就实现了Copy-on-Write机制，从而减少了内存操作的次数，提高了系统性能。</p>
+<ol>
+<li>如果父页表项具有可写标志（PTE_W），则将其设置为新标志（PTE_COW）。</li>
+<li>将原始页映射到子页表中，并设置新的标志。如果映射失败，则跳转到错误处理。</li>
+<li>增加原始页的引用计数。</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; sz; i += PGSIZE) &#123;</span><br><span class="line">    <span class="keyword">if</span> ((pte = walk(old, i, <span class="number">0</span>)) == <span class="number">0</span>)</span><br><span class="line">      panic(<span class="string">&quot;uvmcopy: pte should exist&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> ((*pte &amp; PTE_V) == <span class="number">0</span>)</span><br><span class="line">      panic(<span class="string">&quot;uvmcopy: page not present&quot;</span>);</span><br><span class="line">    pa = PTE2PA(*pte);</span><br><span class="line">     </span><br><span class="line">    <span class="keyword">if</span> (*pte &amp; PTE_W) *pte = (*pte ^ PTE_W) | PTE_COW; <span class="comment">//如果父页表项具有可写标志（PTE_W），则将其设置为新标志（PTE_COW）</span></span><br><span class="line">    <span class="keyword">if</span> (mappages(new, i, PGSIZE, pa, PTE_FLAGS(*pte)) != <span class="number">0</span>) <span class="keyword">goto</span> err;<span class="comment">//将原始页映射到子页表中，并设置新的标志。如果映射失败，则跳转到错误处理。</span></span><br><span class="line">    page_refcnt[(uint64)pa / PGSIZE] += <span class="number">1</span>; <span class="comment">//增加原始页的引用计数。</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="修改copyout函数："><a href="#修改copyout函数：" class="headerlink" title="修改copyout函数："></a>修改copyout函数：</h4><p>原先：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(pte == <span class="number">0</span> || (*pte &amp; PTE_V) == <span class="number">0</span> || (*pte &amp; PTE_U) == <span class="number">0</span> || (*pte &amp; PTE_W) == <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br></pre></td></tr></table></figure>
+
+<p>修改后：</p>
+<p>它处理的是当遇到一个写保护（PTE_W）或COW（Copy-on-Write）标志被设置的页表项（pte）时的情况。</p>
+<ol>
+<li>首先，代码检查pte是否为0，或者PTE_V（页表项有效）和PTE_U（用户空间可访问）标志是否被设置。如果这些条件不满足，函数返回-1。</li>
+<li>接下来，代码检查PTE_W（写保护）标志是否被设置，以及PTE_COW（Copy-on-Write）标志是否被设置。如果PTE_W标志没有被设置，且PTE_COW标志被设置，那么表示遇到了一个COW页。</li>
+<li>对于COW页，代码首先尝试为新的页分配内存。如果内存分配失败，函数跳转到not_enough_physical_memory_error标签，并打印错误信息。</li>
+<li>如果内存分配成功，代码将原始页的内容复制到新的页中。</li>
+<li>然后，代码将新的页映射到页表中，并取消原始页的映射。这里使用了mappages函数来映射新的页，并使用kfree函数释放原始页的内存。</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(pte == <span class="number">0</span> || (*pte &amp; PTE_V) == <span class="number">0</span> || (*pte &amp; PTE_U) == <span class="number">0</span> || (((*pte &amp; PTE_W) == <span class="number">0</span>) &amp;&amp; ((*pte &amp; PTE_COW) == <span class="number">0</span>))) <span class="comment">//检查pte是否为0，或者PTE_V（页表项有效）和PTE_U（用户空间可访问）标志是否被设置，既不可写也不是COW</span></span><br><span class="line">     <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">   <span class="keyword">if</span>((*pte &amp; PTE_W) == <span class="number">0</span> &amp;&amp; (*pte &amp; PTE_COW)) <span class="comment">//不可写且是COW</span></span><br><span class="line">   &#123;</span><br><span class="line">     <span class="type">char</span> *mem;</span><br><span class="line">     <span class="keyword">if</span>((mem = kalloc()) == <span class="number">0</span>)<span class="comment">//尝试为新的页分配内存</span></span><br><span class="line">     &#123;</span><br><span class="line">       not_enough_physical_memory_error:</span><br><span class="line">       <span class="built_in">printf</span>(<span class="string">&quot;Not enough physical memory when copy-on-write! \n&quot;</span>);</span><br><span class="line">       <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">     &#125;</span><br><span class="line">     memmove(mem, (<span class="type">char</span>*)PTE2PA(*pte), PGSIZE);<span class="comment">//代码将原始页的内容复制到新的页中</span></span><br><span class="line">     <span class="comment">//代码将新的页映射到页表中，并取消原始页的映射。这里使用了mappages函数来映射新的页，并使用kfree函数释放原始页的内存。</span></span><br><span class="line">     uint flags = PTE_FLAGS(*pte);</span><br><span class="line">     flags = (flags &amp; (~PTE_COW)) | PTE_W; <span class="comment">//置为可写，COW位置零</span></span><br><span class="line">     uvmunmap(pagetable, va0, <span class="number">1</span>, <span class="number">1</span>); </span><br><span class="line">     <span class="keyword">if</span>(mappages(pagetable, va0, PGSIZE, (uint64)mem, flags) != <span class="number">0</span>)&#123;</span><br><span class="line">       kfree(mem);</span><br><span class="line">       <span class="built_in">printf</span>(<span class="string">&quot;This should never happen! The page SHOULD exist. mappages() won&#x27;t fail!!! \n&quot;</span>);</span><br><span class="line">       <span class="keyword">goto</span> not_enough_physical_memory_error;</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+
+	  <div class="article-footer-copyright">
+
+    本博客采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议(CC BY-NC-SA 4.0) 发布.</a>
+</div>
+
+	</div>
+
+	
+	
+	<div>
+  	<center>
+
+	<div class="pagination">
+
+    
+    
+    <a href="/2024/07/04/trapslab/" type="button" class="btn btn-default"><i
+                class="fa fa-arrow-circle-o-left"></i> Prev</a>
+    
+
+    <a href="/" type="button" class="btn btn-default"><i class="fa fa-home"></i>Home</a>
+    
+    <a href="/2024/07/02/the-first/" type="button" class="btn btn-default ">Next<i
+                class="fa fa-arrow-circle-o-right"></i></a>
+    
+
+    
+</div>
+
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	<!--
+<section id="comment">
+    <h2 class="title">Comments</h2>
+
+    
+</section>
+
+-->
+	
+	
+	
+	</div> <!-- col-md-9/col-md-12 -->
+
+
+	
+	<div id="side_meta">
+		<div class="col-md-3" id="post_meta"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	2024-07-04 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/categories/作业/">作业<span>2</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/tags/操作系统/">操作系统<span>2</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	   <a data-toggle="collapse" data-target="#toc"><i class="fa fa-bars"></i></a>
+	   <div id="toc" class="toc collapse in">
+		   <span class="toc-title">Contents</span>
+			<ol class="toc-article"><li class="toc-article-item toc-article-level-1"><a class="toc-article-link" href="#Lab5-Copy-on-Write-Fork-for-xv6"><span class="toc-article-text">Lab5: Copy-on-Write Fork for xv6</span></a><ol class="toc-article-child"><li class="toc-article-item toc-article-level-2"><a class="toc-article-link" href="#%E9%A2%98%E7%9B%AE%E7%BF%BB%E8%AF%91%EF%BC%9A"><span class="toc-article-text">题目翻译：</span></a></li><li class="toc-article-item toc-article-level-2"><a class="toc-article-link" href="#%E5%AE%9E%E7%8E%B0%EF%BC%9A"><span class="toc-article-text">实现：</span></a><ol class="toc-article-child"><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#%E5%9C%A8riscv-h%E4%B8%AD"><span class="toc-article-text">在riscv.h中</span></a></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#%E5%9C%A8kalloc-c%E4%B8%AD%EF%BC%9A"><span class="toc-article-text">在kalloc.c中：</span></a><ol class="toc-article-child"><li class="toc-article-item toc-article-level-4"><a class="toc-article-link" href="#%E5%9C%A8kfree-%E5%87%BD%E6%95%B0%E4%B8%AD%E5%8A%A0%E5%85%A5%EF%BC%88%E7%94%A8%E4%BA%8E%E8%AE%A1%E6%95%B0%E5%87%8F%E4%B8%80%EF%BC%89%EF%BC%9A"><span class="toc-article-text">在kfree()函数中加入（用于计数减一）：</span></a></li><li class="toc-article-item toc-article-level-4"><a class="toc-article-link" href="#%E5%9C%A8kalloc-%E5%87%BD%E6%95%B0%E4%B8%AD%EF%BC%9A"><span class="toc-article-text">在kalloc()函数中：</span></a></li></ol></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#%E5%9C%A8trap-c%E4%B8%AD%EF%BC%9A"><span class="toc-article-text">在trap.c中：</span></a><ol class="toc-article-child"><li class="toc-article-item toc-article-level-4"><a class="toc-article-link" href="#%E5%9C%A8usertrap-%E4%B8%AD%EF%BC%9A"><span class="toc-article-text">在usertrap()中：</span></a></li></ol></li><li class="toc-article-item toc-article-level-3"><a class="toc-article-link" href="#%E5%9C%A8vm-c%E4%B8%AD%EF%BC%9A"><span class="toc-article-text">在vm.c中：</span></a><ol class="toc-article-child"><li class="toc-article-item toc-article-level-4"><a class="toc-article-link" href="#%E4%BF%AE%E6%94%B9uvmcopy-%E5%87%BD%E6%95%B0%EF%BC%9A"><span class="toc-article-text">修改uvmcopy()函数：</span></a></li><li class="toc-article-item toc-article-level-4"><a class="toc-article-link" href="#%E4%BF%AE%E6%94%B9copyout%E5%87%BD%E6%95%B0%EF%BC%9A"><span class="toc-article-text">修改copyout函数：</span></a></li></ol></li></ol></li></ol></li></ol>
+		</div>
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+		
+
+	</div>
+	
+		
+
+</div><!-- row -->
+
+<!--
+ -->
+
+
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  
+  &copy; 2024 tong's Blog
+  
+      powered by <a href="http://hexo.io/" target="_blank">Hexo</a>.Theme <a href="https://github.com/Ares-X/hexo-theme-freemind.bithack" target="_blank">freemind.bithack</a>  
+</p>
+ </footer>
+</div> <!-- container-narrow -->
+  
+
+
+  
+<a id="gotop" href="#">   
+  <span>⬆︎TOP</span>
+</a>
+
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/main.js"></script>
+<script src="/js/search.js"></script> 
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+
+   <script type="text/javascript">      
+     var search_path = "search.xml";
+	 if (search_path.length == 0) {
+	 	search_path = "search.xml";
+	 }
+	 var path = "/" + search_path;
+     searchFunc(path, 'local-search-input', 'local-search-result');
+   </script>
+
+</body>
+   </html>
