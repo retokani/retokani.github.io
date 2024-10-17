@@ -139,6 +139,41 @@
 <div class="row">
 	<div class="col-md-8">
 		<h3 class="title">
+			<a href="/2024/10/17/口是心非的墓志铭/" ></a>
+		</h3>
+		</div>
+	<div class="col-md-4">
+		<div class="date">post @ 2024-10-17  </div>
+		</div>
+	</div>
+	
+
+
+			<div class="entry">
+  <div class="row">
+	
+	
+		<h1 id="口是心非的墓志铭"><a href="#口是心非的墓志铭" class="headerlink" title="口是心非的墓志铭"></a>口是心非的墓志铭</h1><p><a target="_blank" rel="noopener" href="https://archiveofourown.org/users/Azazellokun21/pseuds/Azazellokun21">Azazellokun21</a>、[WTF 山姆·洛克威尔和角色 2021 （WTF_Sam_Rockwell_and_roles_2021）](<a target="_blank" rel="noopener" href="https://archiveofourown.org/users/WTF_Sam_Rockwell_and_roles_2021/pseuds/WTF">https://archiveofourown.org/users/WTF_Sam_Rockwell_and_roles_2021/pseuds/WTF</a> Sam Rockwell and roles 2021)</p>
+<p>总结：</p>
+<p>马蒂喝醉到失去知觉，比利不知不觉地陷入了爱河。</p>
+<p>笔记：</p>
+<p>Precanon， 不健康的关系， 暴力， 异性恋 （achtung！），， 脏话， （包括醉酒）， 抚摸， 公正， 淫秽的语言， 记忆力减退， 酗酒， 历史， OOS.</p>
+<p>性别评级。</p>
+<p>Marty&#x2F;Billy &amp; Billy&#x2F;Marty是主船，其他一切都是深度次要的。</p>
+<p>书中提到了其他电影和原始剧本。它们不会影响文本的感知，它们只是存在。因此，如果某件事在你看来在某个地方，它就不是你觉得的。</p>
+<h2 id="第-1-章：序幕"><a href="#第-1-章：序幕" class="headerlink" title="第 1 章：序幕"></a><a target="_blank" rel="noopener" href="https://archiveofourown.org/works/29239866/chapters/71797359">第 1 章</a>：序幕</h2>
+	
+	</div>
+  <a type="button" href="/2024/10/17/口是心非的墓志铭/#more" class="btn btn-default more">Read More</a>
+</div>
+
+		
+			
+	
+	<!-- display as entry -->
+<div class="row">
+	<div class="col-md-8">
+		<h3 class="title">
 			<a href="/2024/07/04/trapslab/" >【实验4】traps-lab</a>
 		</h3>
 		</div>
@@ -188,8 +223,8 @@
   <div class="row">
 	
 	
-		<h1 id="Lab5-Copy-on-Write-Fork-for-xv6"><a href="#Lab5-Copy-on-Write-Fork-for-xv6" class="headerlink" title="Lab5: Copy-on-Write Fork for xv6"></a>Lab5: Copy-on-Write Fork for xv6</h1><h2 id="题目翻译："><a href="#题目翻译：" class="headerlink" title="题目翻译："></a>题目翻译：</h2><p>问题：xv6 中的 fork() 系统调用会将父进程的所有用户空间内存复制到子进程中。如果父进程很大，拷贝可能需要很长时间。更糟糕的是，这些工作通常会被浪费掉：fork() 之后，子进程通常会执行 exec()，丢弃复制的内存，通常不会使用其中的大部分。另一方面，如果父进程和子进程都使用了复制的页面，并且其中一个或两个都写入了该页面，那么复制就是真正需要的。</p>
-<p>需要实现的：实现写入时拷贝（COW）fork() 的目的是推迟分配和拷贝物理内存页，直到实际需要时才拷贝（如果需要的话）。COW fork() creates just a pagetable for the child, with PTEs for user memory pointing to the parent’s physical pages. COW fork() 只为子进程创建一个分页表，其中的用户内存 PTE 指向父进程的物理页面。COW fork() 会将父进程和子进程中的所有用户 PTE 标记为只读。当任何一个进程试图写入这些 COW 页面时，CPU 都会强制产生一个页面故障。内核页面故障处理程序会检测到这种情况，为故障进程分配一页物理内存，将原始页面复制到新页面，并修改故障进程中的相关 PTE 以引用新页面，这次的 PTE 标记为可写。当页面故障处理程序返回时，用户进程将能写入其页面副本。</p>
+		<h1 id="Lab5-Copy-on-Write-Fork-for-xv6"><a href="#Lab5-Copy-on-Write-Fork-for-xv6" class="headerlink" title="Lab5: Copy-on-Write Fork for xv6"></a>Lab5: Copy-on-Write Fork for xv6</h1><h2 id="题目翻译："><a href="#题目翻译：" class="headerlink" title="题目翻译："></a>题目翻译：</h2><p><strong>问题：</strong>xv6 中的 fork() 系统调用会将父进程的所有用户空间内存复制到子进程中。如果父进程很大，拷贝可能需要很长时间。更糟糕的是，这些工作通常会被浪费掉：fork() 之后，子进程通常会执行 exec()，丢弃复制的内存，通常不会使用其中的大部分。另一方面，如果父进程和子进程都使用了复制的页面，并且其中一个或两个都写入了该页面，那么复制就是真正需要的。</p>
+<p><strong>需要实现的：</strong>实现写入时拷贝（COW）fork() 的目的是推迟分配和拷贝物理内存页，直到实际需要时才拷贝（如果需要的话）。COW fork() creates just a pagetable for the child, with PTEs for user memory pointing to the parent’s physical pages. COW fork() 只为子进程创建一个分页表，其中的用户内存 PTE 指向父进程的物理页面。COW fork() 会将父进程和子进程中的所有用户 PTE 标记为只读。当任何一个进程试图写入这些 COW 页面时，CPU 都会强制产生一个页面故障。内核页面故障处理程序会检测到这种情况，为故障进程分配一页物理内存，将原始页面复制到新页面，并修改故障进程中的相关 PTE 以引用新页面，这次的 PTE 标记为可写。当页面故障处理程序返回时，用户进程将能写入其页面副本。</p>
 <p>​		COW fork() 在释放实现用户内存的物理页时比较麻烦。一个给定的物理页可能会被多个进程的页表引用，只有当最后一个引用消失时，才能释放该页。在 xv6 这样的简单内核中，这种管理相当简单明了，但在生产内核中却很难做到这一点。</p>
 <p>这里有一个合理的攻击计划：</p>
 <ol>
@@ -293,9 +328,9 @@
 		<h4>Tag Cloud</h4>
 		<ul class="tag_box inline list-unstyled">		
 		
-			<li><a href="/tags/reto/">reto<span>1</span></a></li>
-		
 			<li><a href="/tags/操作系统/">操作系统<span>2</span></a></li>
+		
+			<li><a href="/tags/reto/">reto<span>1</span></a></li>
 		
 		 
 		</ul>
@@ -307,6 +342,10 @@
 <div class="widget">
   <h4>Recent Posts</h4>
   <ul class="entry list-unstyled">
+    
+      <li>
+        <a href="/2024/10/17/口是心非的墓志铭/" ><i class="fa fa-file-o"></i></a>
+      </li>
     
       <li>
         <a href="/2024/07/04/trapslab/" ><i class="fa fa-file-o"></i>【实验4】traps-lab</a>
